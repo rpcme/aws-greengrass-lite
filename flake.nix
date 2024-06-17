@@ -11,10 +11,13 @@
       packages = pkgs: with pkgs; [
         pkg-config
         clang-tools
+        gdb
         bear
         openssl
         git
         git-secrets
+        systemd
+        dbus
       ];
     };
     devShells.clang = devShell // {
