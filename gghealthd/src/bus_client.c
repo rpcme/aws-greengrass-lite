@@ -10,6 +10,7 @@
 #include <ggl/error.h>
 #include <ggl/log.h>
 #include <ggl/object.h>
+#include <ggl/vector.h>
 #include <pthread.h>
 #include <string.h>
 #include <stddef.h>
@@ -21,51 +22,36 @@
 #define KEY_SUFFIX_LEN (sizeof(KEY_SUFFIX) - 1U)
 
 static pthread_mutex_t bump_alloc_mutex = PTHREAD_MUTEX_INITIALIZER;
+static uint8_t bump_buffer[4096];
 
 // Check a component's version field in ggconfigd for proof of existence
 GglError verify_component_exists(GglBuffer component_name) {
-    if ((component_name.data == NULL) || (component_name.len == 0)
-        || (component_name.len > 128U)) {
-        return GGL_ERR_RANGE;
-    }
-
     int ret = pthread_mutex_lock(&bump_alloc_mutex);
     if (ret < 0) {
         return GGL_ERR_FAILURE;
     }
     GGL_DEFER(pthread_mutex_unlock, bump_alloc_mutex);
-
-    GglBuffer server = GGL_STR("/aws/ggl/ggconfigd");
-    static uint8_t bump_buffer[4096];
     GglBumpAlloc alloc = ggl_bump_alloc_init(GGL_BUF(bump_buffer));
 
-    GglBuffer key
-        = { .data = GGL_ALLOCN(
-                &alloc.alloc,
-                uint8_t,
-                component_name.len + KEY_PREFIX_LEN + KEY_SUFFIX_LEN + 1U
-            ),
-            .len = component_name.len + KEY_PREFIX_LEN + KEY_SUFFIX_LEN };
-
-    if (key.data == NULL) {
+    const size_t capacity
+        = component_name.len + KEY_PREFIX_LEN + KEY_SUFFIX_LEN;
+    GglByteVec key
+        = { .buf = (GglBuffer
+            ) { .data = GGL_ALLOCN(&alloc.alloc, uint8_t, capacity), .len = 0 },
+            .capacity = capacity };
+    if (key.buf.data == NULL) {
         return GGL_ERR_NOMEM;
     }
+    ggl_byte_vec_append(&key, GGL_STR(KEY_PREFIX));
+    ggl_byte_vec_append(&key, component_name);
+    ggl_byte_vec_append(&key, GGL_STR(KEY_SUFFIX));
 
-    key.data[0] = '\0';
-    strncat((char *) key.data, KEY_PREFIX, KEY_PREFIX_LEN + 1U);
-    strncat(
-        (char *) key.data,
-        (const char *) component_name.data,
-        component_name.len
-    );
-    strncat((char *) key.data, KEY_SUFFIX, KEY_SUFFIX_LEN + 1U);
-
+    GglBuffer server = GGL_STR("/aws/ggl/ggconfigd");
     GglMap params = GGL_MAP(
         { GGL_STR("component"), GGL_OBJ_STR("gghealthd") },
-        { GGL_STR("key"), GGL_OBJ(key) },
+        { GGL_STR("key"), GGL_OBJ(key.buf) },
     );
     GglObject result;
-
     GglError method_error = GGL_ERR_OK;
     GglError error = ggl_call(
         server, GGL_STR("read"), params, &method_error, &alloc.alloc, &result
