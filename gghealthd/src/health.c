@@ -4,7 +4,9 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <errno.h>
+#include <ggl/alloc.h>
 #include <ggl/buffer.h>
+#include <ggl/bump_alloc.h>
 #include <ggl/defer.h>
 #include <ggl/error.h>
 #include <ggl/log.h>
@@ -456,13 +458,12 @@ GglError gghealthd_update_status(GglBuffer component_name, GglBuffer status) {
         return GGL_ERR_INVALID;
     }
 
-    uint8_t qualified_name[SERVICE_NAME_MAX_LEN + 1] = { 0 };
-
     GglError err = verify_component_exists(component_name);
     if (err != GGL_ERR_OK) {
         return err;
     }
 
+    uint8_t qualified_name[SERVICE_NAME_MAX_LEN + 1] = { 0 };
     err = get_service_name(component_name, &GGL_BUF(qualified_name));
     if (err != GGL_ERR_OK) {
         return err;
@@ -512,7 +513,51 @@ GglError gghealthd_get_health(GglBuffer *status) {
         return GGL_ERR_OK;
     }
 
-    // TODO: check all root components
+    static uint8_t bump_buffer[GGHEALTHD_GET_HEALTH_BUFFER_SIZE];
+    GglBumpAlloc alloc = ggl_bump_alloc_init(GGL_BUF(bump_buffer));
+    GglList components = { 0 };
+
+    err = get_root_component_list(&alloc.alloc, &components);
+    if (err != GGL_ERR_OK) {
+        return err;
+    }
+
+    for (size_t i = 0; i < components.len; ++i) {
+        GglObject *component_name = &components.items[i];
+        if (component_name->type != GGL_TYPE_BUF) {
+            GGL_LOGE("gghealthd", "Component name was not of type Buffer");
+            return GGL_ERR_FATAL;
+        }
+
+        uint8_t qualified_name[SERVICE_NAME_MAX_LEN + 1] = { 0 };
+        err = get_service_name(component_name->buf, &GGL_BUF(qualified_name));
+        if (err != GGL_ERR_OK) {
+            return err;
+        }
+        GglBuffer component_status = { 0 };
+
+        // only check final result
+        err = get_component_result(
+            bus, (const char *) qualified_name, &component_status
+        );
+        if (err != GGL_ERR_OK) {
+            return err;
+        }
+        if (ggl_buffer_eq(component_status, GGL_STR("BROKEN"))) {
+            GGL_LOGW(
+                "gghealthd",
+                "%.*s is BROKEN",
+                (int) component_name->buf.len,
+                (const char *) component_name->buf.data
+            );
+
+            *status = GGL_STR("UNHEALTHY");
+            return GGL_ERR_OK;
+        }
+    }
+
+    // TODO: get overall core component health
+
     *status = GGL_STR("HEALTHY");
     return GGL_ERR_OK;
 }

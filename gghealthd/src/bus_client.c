@@ -4,6 +4,8 @@
 
 #include "bus_client.h"
 #include <sys/types.h>
+#include <assert.h>
+#include <errno.h>
 #include <ggl/alloc.h>
 #include <ggl/bump_alloc.h>
 #include <ggl/core_bus/client.h>
@@ -20,7 +22,35 @@
 #define KEY_PREFIX_LEN (sizeof(KEY_PREFIX) - 1U)
 #define KEY_SUFFIX_LEN (sizeof(KEY_SUFFIX) - 1U)
 
+static GglError get_key(GglAlloc *alloc, GglBuffer key, GglObject *result) {
+    assert(
+        (alloc != NULL) && (key.data != NULL) && (key.len > 0)
+        && (result != NULL)
+    );
+
+    GglBuffer server = GGL_STR("/aws/ggl/ggconfigd");
+    GglMap params = GGL_MAP(
+        { GGL_STR("component"), GGL_OBJ_STR("gghealthd") },
+        { GGL_STR("key"), GGL_OBJ(key) },
+    );
+
+    GglError method_error = GGL_ERR_OK;
+    GglError error = ggl_call(
+        server, GGL_STR("read"), params, &method_error, alloc, result
+    );
+    if (error != GGL_ERR_OK) {
+        GGL_LOGE("failed to connect to ggconfigd");
+        return error;
+    }
+    if (method_error != GGL_ERR_OK) {
+        GGL_LOGE("component does not exist in registry");
+        return GGL_ERR_NOENTRY;
+    }
+    return GGL_ERR_OK;
+}
+
 static pthread_mutex_t bump_alloc_mutex = PTHREAD_MUTEX_INITIALIZER;
+static uint8_t bump_buffer[4096];
 
 // Check a component's version field in ggconfigd for proof of existence
 GglError verify_component_exists(GglBuffer component_name) {
@@ -31,12 +61,11 @@ GglError verify_component_exists(GglBuffer component_name) {
 
     int ret = pthread_mutex_lock(&bump_alloc_mutex);
     if (ret < 0) {
+        GGL_LOGE("failed to lock mutex (errno = %d)", errno);
         return GGL_ERR_FAILURE;
     }
     GGL_DEFER(pthread_mutex_unlock, bump_alloc_mutex);
 
-    GglBuffer server = GGL_STR("gg_config");
-    static uint8_t bump_buffer[4096];
     GglBumpAlloc alloc = ggl_bump_alloc_init(GGL_BUF(bump_buffer));
 
     GglBuffer key
@@ -60,28 +89,25 @@ GglError verify_component_exists(GglBuffer component_name) {
     );
     strncat((char *) key.data, KEY_SUFFIX, KEY_SUFFIX_LEN + 1U);
 
-    GglMap params = GGL_MAP(
-        { GGL_STR("component"), GGL_OBJ_STR("gghealthd") },
-        { GGL_STR("key"), GGL_OBJ(key) },
-    );
     GglObject result;
+    return get_key(&alloc.alloc, key, &result);
+}
 
-    GglError method_error = GGL_ERR_OK;
-    GglError error = ggl_call(
-        server, GGL_STR("read"), params, &method_error, &alloc.alloc, &result
+GglError get_root_component_list(GglAlloc *alloc, GglList *component_list) {
+    assert(
+        (alloc != NULL) && (component_list != NULL)
+        && (component_list->items == NULL)
     );
-    if (error != GGL_ERR_OK) {
-        GGL_LOGE("failed to connect to ggconfigd");
-        return error;
+
+    GglObject result = { 0 };
+    GglError err = get_key(alloc, GGL_STR(KEY_PREFIX), &result);
+    if (err != GGL_ERR_OK) {
+        return err;
     }
-    if (method_error != GGL_ERR_OK) {
-        GGL_LOGE("component does not exist in registry");
-        return GGL_ERR_NOENTRY;
+    if (result.type != GGL_TYPE_LIST) {
+        GGL_LOGE("ggconfigd protocol error expected List");
+        return GGL_ERR_FATAL;
     }
-    if (result.type == GGL_TYPE_BUF) {
-        GGL_LOGT(
-            "read %.*s", (int) result.buf.len, (const char *) result.buf.data
-        );
-    }
+    *component_list = result.list;
     return GGL_ERR_OK;
 }
