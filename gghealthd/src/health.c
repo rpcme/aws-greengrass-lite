@@ -12,6 +12,7 @@
 #include <ggl/log.h>
 #include <ggl/map.h>
 #include <ggl/object.h>
+#include <ggl/vector.h>
 #include <pthread.h>
 #include <string.h>
 #include <systemd/sd-bus.h>
@@ -293,33 +294,30 @@ static GglError get_component_pid(
 }
 
 static GglError get_service_name(
-    GglBuffer component_name, GglBuffer *qualified_name
+    GglBuffer component_name, GglByteVec *qualified_name
 ) {
     assert(
         (component_name.data != NULL) && (qualified_name != NULL)
-        && (qualified_name->data != NULL)
+        && (qualified_name->buf.data != NULL)
     );
-    assert(qualified_name->len > SERVICE_NAME_MAX_LEN);
-    if (component_name.len > COMPONENT_NAME_MAX_LEN) {
-        GGL_LOGE("component name too long");
+
+    GglError err = ggl_byte_vec_append(qualified_name, GGL_STR(SERVICE_PREFIX));
+    if (err != GGL_ERR_OK) {
+        return err;
+    }
+    err = ggl_byte_vec_append(qualified_name, component_name);
+    if (err != GGL_ERR_OK) {
+        return err;
+    }
+    err = ggl_byte_vec_append(qualified_name, GGL_STR(SERVICE_SUFFIX));
+    if (err != GGL_ERR_OK) {
+        return err;
+    }
+    if (qualified_name->buf.len == qualified_name->capacity) {
         return GGL_ERR_RANGE;
     }
-
-    qualified_name->data[0] = '\0';
-    strncat(
-        (char *) qualified_name->data, SERVICE_PREFIX, SERVICE_PREFIX_LEN + 1U
-    );
-    strncat(
-        (char *) qualified_name->data,
-        (const char *) component_name.data,
-        component_name.len + 1U
-    );
-    strncat(
-        (char *) qualified_name->data, SERVICE_SUFFIX, SERVICE_SUFFIX_LEN + 1U
-    );
-    qualified_name->len
-        = SERVICE_PREFIX_LEN + component_name.len + SERVICE_SUFFIX_LEN + 1U;
-    return GGL_ERR_OK;
+    qualified_name->buf.data[qualified_name->buf.len] = '\0';
+    return err;
 }
 
 static GglError get_active_state(
@@ -433,8 +431,9 @@ GglError gghealthd_get_status(GglBuffer component_name, GglBuffer *status) {
     }
 
     uint8_t qualified_name[SERVICE_NAME_MAX_LEN + 1] = { 0 };
-    err = get_service_name(component_name, &GGL_BUF(qualified_name));
+    err = get_service_name(component_name, &GGL_BYTE_VEC(qualified_name));
     if (err != GGL_ERR_OK) {
+        GGL_LOGE("gghealthd", "Service name too long");
         return err;
     }
     return get_run_status(bus, (const char *) qualified_name, status);
@@ -464,8 +463,9 @@ GglError gghealthd_update_status(GglBuffer component_name, GglBuffer status) {
     }
 
     uint8_t qualified_name[SERVICE_NAME_MAX_LEN + 1] = { 0 };
-    err = get_service_name(component_name, &GGL_BUF(qualified_name));
+    err = get_service_name(component_name, &GGL_BYTE_VEC(qualified_name));
     if (err != GGL_ERR_OK) {
+        GGL_LOGE("gghealthd", "Service name too long");
         return err;
     }
 
@@ -530,7 +530,9 @@ GglError gghealthd_get_health(GglBuffer *status) {
         }
 
         uint8_t qualified_name[SERVICE_NAME_MAX_LEN + 1] = { 0 };
-        err = get_service_name(component_name->buf, &GGL_BUF(qualified_name));
+        err = get_service_name(
+            component_name->buf, &GGL_BYTE_VEC(qualified_name)
+        );
         if (err != GGL_ERR_OK) {
             return err;
         }

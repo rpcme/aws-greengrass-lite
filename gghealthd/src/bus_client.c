@@ -13,6 +13,7 @@
 #include <ggl/error.h>
 #include <ggl/log.h>
 #include <ggl/object.h>
+#include <ggl/vector.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdint.h>
@@ -54,11 +55,6 @@ static uint8_t bump_buffer[4096];
 
 // Check a component's version field in ggconfigd for proof of existence
 GglError verify_component_exists(GglBuffer component_name) {
-    if ((component_name.data == NULL) || (component_name.len == 0)
-        || (component_name.len > 128U)) {
-        return GGL_ERR_RANGE;
-    }
-
     int ret = pthread_mutex_lock(&bump_alloc_mutex);
     if (ret < 0) {
         GGL_LOGE("failed to lock mutex (errno = %d)", errno);
@@ -68,29 +64,19 @@ GglError verify_component_exists(GglBuffer component_name) {
 
     GglBumpAlloc alloc = ggl_bump_alloc_init(GGL_BUF(bump_buffer));
 
-    GglBuffer key
-        = { .data = GGL_ALLOCN(
-                &alloc.alloc,
-                uint8_t,
-                component_name.len + KEY_PREFIX_LEN + KEY_SUFFIX_LEN + 1U
-            ),
-            .len = component_name.len + KEY_PREFIX_LEN + KEY_SUFFIX_LEN };
-
-    if (key.data == NULL) {
+    const size_t capacity
+        = component_name.len + KEY_PREFIX_LEN + KEY_SUFFIX_LEN;
+    GglByteVec key
+        = { .buf = (GglBuffer
+            ) { .data = GGL_ALLOCN(&alloc.alloc, uint8_t, capacity), .len = 0 },
+            .capacity = capacity };
+    if (key.buf.data == NULL) {
         return GGL_ERR_NOMEM;
     }
-
-    key.data[0] = '\0';
-    strncat((char *) key.data, KEY_PREFIX, KEY_PREFIX_LEN + 1U);
-    strncat(
-        (char *) key.data,
-        (const char *) component_name.data,
-        component_name.len
-    );
-    strncat((char *) key.data, KEY_SUFFIX, KEY_SUFFIX_LEN + 1U);
-
-    GglObject result;
-    return get_key(&alloc.alloc, key, &result);
+    ggl_byte_vec_append(&key, GGL_STR(KEY_PREFIX));
+    ggl_byte_vec_append(&key, component_name);
+    ggl_byte_vec_append(&key, GGL_STR(KEY_SUFFIX));
+    return get_key(&alloc.alloc, key.buf, &(GglObject) { 0 });
 }
 
 GglError get_root_component_list(GglAlloc *alloc, GglList *component_list) {
