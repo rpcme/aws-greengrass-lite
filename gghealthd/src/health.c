@@ -515,7 +515,7 @@ GglError gghealthd_get_health(GglBuffer *status) {
 
     static uint8_t bump_buffer[GGHEALTHD_GET_HEALTH_BUFFER_SIZE];
     GglBumpAlloc alloc = ggl_bump_alloc_init(GGL_BUF(bump_buffer));
-    GglList components = { 0 };
+    GglMap components = { 0 };
 
     err = get_root_component_list(&alloc.alloc, &components);
     if (err != GGL_ERR_OK) {
@@ -523,16 +523,9 @@ GglError gghealthd_get_health(GglBuffer *status) {
     }
 
     for (size_t i = 0; i < components.len; ++i) {
-        GglObject *component_name = &components.items[i];
-        if (component_name->type != GGL_TYPE_BUF) {
-            GGL_LOGE("gghealthd", "Component name was not of type Buffer");
-            return GGL_ERR_FATAL;
-        }
-
+        GglKV *component = &components.pairs[i];
         uint8_t qualified_name[SERVICE_NAME_MAX_LEN + 1] = { 0 };
-        err = get_service_name(
-            component_name->buf, &GGL_BYTE_VEC(qualified_name)
-        );
+        err = get_service_name(component->key, &GGL_BYTE_VEC(qualified_name));
         if (err != GGL_ERR_OK) {
             return err;
         }
@@ -549,8 +542,8 @@ GglError gghealthd_get_health(GglBuffer *status) {
             GGL_LOGW(
                 "gghealthd",
                 "%.*s is BROKEN",
-                (int) component_name->buf.len,
-                (const char *) component_name->buf.data
+                (int) component->key.len,
+                (const char *) component->key.data
             );
 
             *status = GGL_STR("UNHEALTHY");

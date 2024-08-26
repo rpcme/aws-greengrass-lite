@@ -9,6 +9,6 @@
 GglError verify_component_exists(GglBuffer component_name);
 
 // use ggconfigd to list root components
-GglError get_root_component_list(GglAlloc *alloc, GglList *component_list);
+GglError get_root_component_list(GglAlloc *alloc, GglMap *component_list);
 
 #endif

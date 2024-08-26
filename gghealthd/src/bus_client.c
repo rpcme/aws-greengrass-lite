@@ -13,27 +13,13 @@
 #include <ggl/error.h>
 #include <ggl/log.h>
 #include <ggl/object.h>
-#include <ggl/vector.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdint.h>
 
-#define KEY_PREFIX "component/"
-#define KEY_SUFFIX "/version"
-#define KEY_PREFIX_LEN (sizeof(KEY_PREFIX) - 1U)
-#define KEY_SUFFIX_LEN (sizeof(KEY_SUFFIX) - 1U)
-
-static GglError get_key(GglAlloc *alloc, GglBuffer key, GglObject *result) {
-    assert(
-        (alloc != NULL) && (key.data != NULL) && (key.len > 0)
-        && (result != NULL)
-    );
-
+static GglError get_key(GglAlloc *alloc, GglList key_path, GglObject *result) {
     GglBuffer server = GGL_STR("/aws/ggl/ggconfigd");
-    GglMap params = GGL_MAP(
-        { GGL_STR("component"), GGL_OBJ_STR("gghealthd") },
-        { GGL_STR("key"), GGL_OBJ(key) },
-    );
+    GglMap params = GGL_MAP({ GGL_STR("key_path"), GGL_OBJ(key_path) }, );
 
     GglError method_error = GGL_ERR_OK;
     GglError error = ggl_call(
@@ -64,36 +50,33 @@ GglError verify_component_exists(GglBuffer component_name) {
 
     GglBumpAlloc alloc = ggl_bump_alloc_init(GGL_BUF(bump_buffer));
 
-    const size_t capacity
-        = component_name.len + KEY_PREFIX_LEN + KEY_SUFFIX_LEN;
-    GglByteVec key
-        = { .buf = (GglBuffer
-            ) { .data = GGL_ALLOCN(&alloc.alloc, uint8_t, capacity), .len = 0 },
-            .capacity = capacity };
-    if (key.buf.data == NULL) {
-        return GGL_ERR_NOMEM;
-    }
-    ggl_byte_vec_append(&key, GGL_STR(KEY_PREFIX));
-    ggl_byte_vec_append(&key, component_name);
-    ggl_byte_vec_append(&key, GGL_STR(KEY_SUFFIX));
-    return get_key(&alloc.alloc, key.buf, &(GglObject) { 0 });
+    return get_key(
+        &alloc.alloc,
+        GGL_LIST(
+            GGL_OBJ_STR("services"),
+            GGL_OBJ(component_name),
+            GGL_OBJ_STR("version")
+        ),
+        &(GglObject) { 0 }
+    );
 }
 
-GglError get_root_component_list(GglAlloc *alloc, GglList *component_list) {
+GglError get_root_component_list(GglAlloc *alloc, GglMap *component_list) {
     assert(
         (alloc != NULL) && (component_list != NULL)
-        && (component_list->items == NULL)
+        && (component_list->pairs == NULL)
     );
 
     GglObject result = { 0 };
-    GglError err = get_key(alloc, GGL_STR(KEY_PREFIX), &result);
+    GglError err = get_key(alloc, GGL_LIST(GGL_OBJ_STR("services")), &result);
     if (err != GGL_ERR_OK) {
         return err;
     }
-    if (result.type != GGL_TYPE_LIST) {
-        GGL_LOGE("ggconfigd protocol error expected List");
+    if (result.type != GGL_TYPE_MAP) {
+        GGL_LOGE("ggconfigd protocol error expected Map");
         return GGL_ERR_FATAL;
     }
-    *component_list = result.list;
+    *component_list = result.map;
+
     return GGL_ERR_OK;
 }
