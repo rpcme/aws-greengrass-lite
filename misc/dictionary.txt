@@ -16,6 +16,7 @@ DIOTCORED
 dont
 EFAILURE
 EOK
+epoll
 EPOLLIN
 evbuffer
 evhttp
@@ -61,6 +62,7 @@ NOLINTNEXTLINE
 NOMEM
 nproc
 parentid
+pidfd
 pkgs
 pname
 posix
@@ -85,3 +87,4 @@ WERROR
 Xiwyu
 xlink
 yapf
+Yocto

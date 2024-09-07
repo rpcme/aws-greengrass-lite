@@ -17,7 +17,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define MAX_KEY_PATH_DEPTH 25
 #define MAX_SUBOBJECTS 25
 #define MAXIMUM_VALUE_LENGTH (sizeof(GglObject) * MAX_SUBOBJECTS)
 
@@ -286,5 +285,5 @@ void ggconfigd_start_server(void) {
             { GGL_STR("subscribe"), true, rpc_subscribe, NULL } };
     size_t handlers_len = sizeof(handlers) / sizeof(handlers[0]);
 
-    ggl_listen(GGL_STR("/aws/ggl/ggconfigd"), handlers, handlers_len);
+    ggl_listen(GGL_STR("gg_config"), handlers, handlers_len);
 }

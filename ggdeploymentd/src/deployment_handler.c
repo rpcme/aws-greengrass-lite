@@ -2,8 +2,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-#define _GNU_SOURCE
-
 #include "deployment_handler.h"
 #include "deployment_model.h"
 #include "deployment_queue.h"
@@ -56,7 +54,7 @@ static GglError get_thing_name(char **thing_name) {
 
     GglObject resp;
     GglError ret = ggl_call(
-        GGL_STR("/aws/ggl/ggconfigd"),
+        GGL_STR("gg_config"),
         GGL_STR("read"),
         params,
         NULL,
@@ -92,7 +90,7 @@ static GglError get_region(char **region) {
 
     GglObject resp;
     GglError ret = ggl_call(
-        GGL_STR("/aws/ggl/ggconfigd"),
+        GGL_STR("gg_config"),
         GGL_STR("read"),
         params,
         NULL,
@@ -125,7 +123,7 @@ static GglError get_root_ca_path(char **root_ca_path) {
 
     GglObject resp;
     GglError ret = ggl_call(
-        GGL_STR("/aws/ggl/ggconfigd"),
+        GGL_STR("gg_config"),
         GGL_STR("read"),
         params,
         NULL,
@@ -161,7 +159,7 @@ static GglError get_tes_cred_url(char **tes_cred_url) {
 
     GglObject resp;
     GglError ret = ggl_call(
-        GGL_STR("/aws/ggl/ggconfigd"),
+        GGL_STR("gg_config"),
         GGL_STR("read"),
         params,
         NULL,
@@ -203,7 +201,7 @@ static GglError get_posix_user(char **posix_user) {
 
     GglObject resp;
     GglError ret = ggl_call(
-        GGL_STR("/aws/ggl/ggconfigd"),
+        GGL_STR("gg_config"),
         GGL_STR("read"),
         params,
         NULL,

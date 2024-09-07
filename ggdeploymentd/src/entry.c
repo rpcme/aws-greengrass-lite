@@ -2,8 +2,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-#define _GNU_SOURCE
-
 #include "bus_server.h"
 #include "deployment_handler.h"
 #include "ggdeploymentd.h"
@@ -34,7 +32,7 @@ static GglError update_root_path(void) {
 
     GglObject resp;
     GglError ret = ggl_call(
-        GGL_STR("/aws/ggl/ggconfigd"),
+        GGL_STR("gg_config"),
         GGL_STR("read"),
         params,
         NULL,

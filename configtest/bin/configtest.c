@@ -28,7 +28,7 @@ static char *print_key_path(GglList *key_path) {
 static void test_insert(
     GglList test_key, GglObject test_value, GglError expected_result
 ) {
-    GglBuffer server = GGL_STR("/aws/ggl/ggconfigd");
+    GglBuffer server = GGL_STR("gg_config");
 
     static uint8_t big_buffer_for_bump[4096];
     GglBumpAlloc the_allocator
@@ -202,7 +202,7 @@ static void compare_objects(GglObject expected, GglObject result) {
 static void test_get(
     GglList test_key_path, GglObject expected_object, GglError expected_result
 ) {
-    GglBuffer server = GGL_STR("/aws/ggl/ggconfigd");
+    GglBuffer server = GGL_STR("gg_config");
     static uint8_t big_buffer_for_bump[4096];
     GglBumpAlloc the_allocator
         = ggl_bump_alloc_init(GGL_BUF(big_buffer_for_bump));
@@ -257,7 +257,7 @@ static void subscription_close(void *ctx, unsigned int handle) {
 }
 
 static void test_subscribe(GglList key, GglError expected_response) {
-    GglBuffer server = GGL_STR("/aws/ggl/ggconfigd");
+    GglBuffer server = GGL_STR("gg_config");
 
     GglMap params = GGL_MAP({ GGL_STR("key_path"), GGL_OBJ(key) }, );
     uint32_t handle;
@@ -348,7 +348,7 @@ static void test_write_object(void) {
         { GGL_STR("value"), test_value_object },
         { GGL_STR("timeStamp"), GGL_OBJ_I64(1723142212) }
     );
-    error = ggl_notify(GGL_STR("/aws/ggl/ggconfigd"), GGL_STR("write"), params);
+    error = ggl_notify(GGL_STR("gg_config"), GGL_STR("write"), params);
     GGL_LOGI("test_write_object", "test complete %d", error);
 }
 
@@ -382,28 +382,25 @@ int main(int argc, char **argv) {
         ),
         GGL_ERR_OK
     );
+
+    GglObject bar = GGL_OBJ_MAP(
+        { GGL_STR("qux"), GGL_OBJ_I64(1) },
+        { GGL_STR("baz"),
+          GGL_OBJ_LIST(
+              GGL_OBJ_I64(1), GGL_OBJ_I64(2), GGL_OBJ_I64(3), GGL_OBJ_I64(4)
+          ) }
+    );
+
+    GglObject foo = GGL_OBJ_MAP(
+        { GGL_STR("bar"), bar }, { GGL_STR("quux"), GGL_OBJ_STR("string") }
+    );
+
     test_get(
         GGL_LIST(GGL_OBJ_STR("component"), GGL_OBJ_STR("foobar"), ),
         GGL_OBJ_MAP(
-            (GglKV) { .key = GGL_STR("foo"),
-                      .val = GGL_OBJ_MAP(
-                          (GglKV) { .key = GGL_STR("bar"),
-                                    .val = GGL_OBJ_MAP(
-                                        (GglKV) { .key = GGL_STR("qux"),
-                                                  .val = GGL_OBJ_I64(1) },
-                                        (GglKV) { .key = GGL_STR("baz"),
-                                                  .val = GGL_OBJ_LIST(
-                                                      GGL_OBJ_I64(1),
-                                                      GGL_OBJ_I64(2),
-                                                      GGL_OBJ_I64(3),
-                                                      GGL_OBJ_I64(4)
-                                                  ) }
-                                    ) },
-                          (GglKV) { .key = GGL_STR("quux"),
-                                    .val = GGL_OBJ_STR("string") }
-                      ) },
-            (GglKV) { .key = GGL_STR("corge"), .val = GGL_OBJ_BOOL(true) },
-            (GglKV) { .key = GGL_STR("grault"), .val = GGL_OBJ_BOOL(false) },
+            { GGL_STR("foo"), foo },
+            { GGL_STR("corge"), GGL_OBJ_BOOL(true) },
+            { GGL_STR("grault"), GGL_OBJ_BOOL(false) },
         ),
         GGL_ERR_OK
     );
@@ -542,6 +539,57 @@ int main(int argc, char **argv) {
         GGL_ERR_OK
     );
 
+    // Test to ensure you are notified for children and grandchildren key
+    // updates
+    test_insert(
+        GGL_LIST(
+            GGL_OBJ_STR("component4"), GGL_OBJ_STR("foo"), GGL_OBJ_STR("bar")
+        ),
+        GGL_OBJ_MAP({ GGL_STR("key"), GGL_OBJ_STR("value1") }),
+        GGL_ERR_OK
+    );
+    test_subscribe(GGL_LIST(GGL_OBJ_STR("component4")), GGL_ERR_OK);
+    // Should see `I[subscription callback] (..): read "value2"`)
+    test_insert(
+        GGL_LIST(GGL_OBJ_STR("component4")),
+        GGL_OBJ_MAP({ GGL_STR("baz"), GGL_OBJ_STR("value2") }),
+        GGL_ERR_OK
+    );
+    // Should see `I[subscription callback] (..): read "value3"`)
+    test_insert(
+        GGL_LIST(
+            GGL_OBJ_STR("component4"), GGL_OBJ_STR("foo"), GGL_OBJ_STR("bar")
+        ),
+        GGL_OBJ_MAP({ GGL_STR("baz"), GGL_OBJ_STR("value3") }),
+        GGL_ERR_OK
+    );
+
+    // Test to ensure keys are not case sensitive
+    test_insert(
+        GGL_LIST(
+            GGL_OBJ_STR("component5"), GGL_OBJ_STR("foo"), GGL_OBJ_STR("bar")
+        ),
+        GGL_OBJ_MAP({ GGL_STR("key"), GGL_OBJ_STR("value1") }),
+        GGL_ERR_OK
+    );
+    test_insert(
+        GGL_LIST(
+            GGL_OBJ_STR("component5"), GGL_OBJ_STR("foo"), GGL_OBJ_STR("bar")
+        ),
+        GGL_OBJ_MAP({ GGL_STR("KEY"), GGL_OBJ_STR("value2") }),
+        GGL_ERR_OK
+    );
+    test_get(
+        GGL_LIST(
+            GGL_OBJ_STR("component5"),
+            GGL_OBJ_STR("foo"),
+            GGL_OBJ_STR("bar"),
+            GGL_OBJ_STR("key")
+        ),
+        GGL_OBJ_STR("value2"),
+        GGL_ERR_OK
+    );
+
     // test_insert(
     //     GGL_LIST(GGL_OBJ_STR("component"), GGL_OBJ_STR("bar")),
     //     GGL_OBJ_MAP({ GGL_STR("foo"), GGL_OBJ_STR("value2") })
@@ -560,9 +608,6 @@ int main(int argc, char **argv) {
     // TODO: verify If you have a subscriber on /foo and write
     // /foo/bar/baz = {"alpha":"data","bravo":"data","charlie":"data"}
     // , it should only signal the notification once.
-
-    // TODO: if a notified process writes to /foo/<someplace> we can trigger an
-    // infinite update loop?
 
     return 0;
 }

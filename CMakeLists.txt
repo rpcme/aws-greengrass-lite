@@ -144,7 +144,10 @@ add_cflags($<$<CONFIG:Debug>:-fsanitize=undefined,address>)
 try_add_cflag_if(function-sections $<NOT:$<CONFIG:Debug>> -ffunction-sections)
 try_add_cflag_if(data-sections $<NOT:$<CONFIG:Debug>> -fdata-sections)
 
+add_compile_definitions(_GNU_SOURCE)
+
 add_compile_definitions($<$<NOT:$<CONFIG:Debug>>:_FORTIFY_SOURCE=2>)
+
 if(GGL_IPC_AUTH_DISABLE)
   add_compile_definitions(GGL_IPC_AUTH_DISABLE)
 endif()
@@ -260,6 +263,7 @@ add_subdirectory(ggl-lib)
 add_subdirectory(ggl-http)
 add_subdirectory(ggl-socket)
 add_subdirectory(ggl-file)
+add_subdirectory(ggl-process)
 add_subdirectory(eventstream)
 add_subdirectory(ggl-json)
 add_subdirectory(ggl-yaml)
