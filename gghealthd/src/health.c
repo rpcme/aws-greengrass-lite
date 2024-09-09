@@ -4,11 +4,11 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <errno.h>
-#include <ggl/alloc.h>
 #include <ggl/buffer.h>
 #include <ggl/bump_alloc.h>
 #include <ggl/defer.h>
 #include <ggl/error.h>
+#include <ggl/list.h>
 #include <ggl/log.h>
 #include <ggl/map.h>
 #include <ggl/object.h>
@@ -433,7 +433,7 @@ GglError gghealthd_get_status(GglBuffer component_name, GglBuffer *status) {
     uint8_t qualified_name[SERVICE_NAME_MAX_LEN + 1] = { 0 };
     err = get_service_name(component_name, &GGL_BYTE_VEC(qualified_name));
     if (err != GGL_ERR_OK) {
-        GGL_LOGE("gghealthd", "Service name too long");
+        GGL_LOGE("Service name too long");
         return err;
     }
     return get_run_status(bus, (const char *) qualified_name, status);
@@ -465,7 +465,7 @@ GglError gghealthd_update_status(GglBuffer component_name, GglBuffer status) {
     uint8_t qualified_name[SERVICE_NAME_MAX_LEN + 1] = { 0 };
     err = get_service_name(component_name, &GGL_BYTE_VEC(qualified_name));
     if (err != GGL_ERR_OK) {
-        GGL_LOGE("gghealthd", "Service name too long");
+        GGL_LOGE("Service name too long");
         return err;
     }
 
@@ -513,19 +513,28 @@ GglError gghealthd_get_health(GglBuffer *status) {
         return GGL_ERR_OK;
     }
 
-    static uint8_t bump_buffer[GGHEALTHD_GET_HEALTH_BUFFER_SIZE];
-    GglBumpAlloc alloc = ggl_bump_alloc_init(GGL_BUF(bump_buffer));
-    GglMap components = { 0 };
+    static uint8_t component_list_buffer[GGHEALTHD_GET_HEALTH_BUFFER_SIZE];
+    GglBumpAlloc alloc = ggl_bump_alloc_init(GGL_BUF(component_list_buffer));
+    GglList components = { 0 };
 
     err = get_root_component_list(&alloc.alloc, &components);
     if (err != GGL_ERR_OK) {
         return err;
     }
 
-    for (size_t i = 0; i < components.len; ++i) {
-        GglKV *component = &components.pairs[i];
+    GGL_LIST_FOREACH(component_name, components) {
         uint8_t qualified_name[SERVICE_NAME_MAX_LEN + 1] = { 0 };
-        err = get_service_name(component->key, &GGL_BYTE_VEC(qualified_name));
+        if (component_name->type != GGL_TYPE_BUF) {
+            GGL_LOGE("/services/main/dependencies member not of type Buf.");
+        }
+        if (ggl_buffer_eq(
+                GGL_STR("aws.greengrass.Nucleus-Lite"), component_name->buf
+            )) {
+            continue;
+        }
+        err = get_service_name(
+            component_name->buf, &GGL_BYTE_VEC(qualified_name)
+        );
         if (err != GGL_ERR_OK) {
             return err;
         }
@@ -540,10 +549,9 @@ GglError gghealthd_get_health(GglBuffer *status) {
         }
         if (ggl_buffer_eq(component_status, GGL_STR("BROKEN"))) {
             GGL_LOGW(
-                "gghealthd",
                 "%.*s is BROKEN",
-                (int) component->key.len,
-                (const char *) component->key.data
+                (int) component_name->buf.len,
+                (const char *) component_name->buf.data
             );
 
             *status = GGL_STR("UNHEALTHY");

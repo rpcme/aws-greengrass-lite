@@ -61,22 +61,30 @@ GglError verify_component_exists(GglBuffer component_name) {
     );
 }
 
-GglError get_root_component_list(GglAlloc *alloc, GglMap *component_list) {
+GglError get_root_component_list(GglAlloc *alloc, GglList *component_list) {
     assert(
         (alloc != NULL) && (component_list != NULL)
-        && (component_list->pairs == NULL)
+        && (component_list->items == NULL)
     );
 
     GglObject result = { 0 };
-    GglError err = get_key(alloc, GGL_LIST(GGL_OBJ_STR("services")), &result);
+    GglError err = get_key(
+        alloc,
+        GGL_LIST(
+            GGL_OBJ_STR("services"),
+            GGL_OBJ_STR("main"),
+            GGL_OBJ_STR("dependencies")
+        ),
+        &result
+    );
     if (err != GGL_ERR_OK) {
         return err;
     }
-    if (result.type != GGL_TYPE_MAP) {
+    if (result.type != GGL_TYPE_LIST) {
         GGL_LOGE("ggconfigd protocol error expected Map");
         return GGL_ERR_FATAL;
     }
-    *component_list = result.map;
+    *component_list = result.list;
 
     return GGL_ERR_OK;
 }
