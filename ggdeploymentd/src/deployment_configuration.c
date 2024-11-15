@@ -9,12 +9,14 @@
 #include <ggl/log.h>
 #include <ggl/object.h>
 #include <ggl/vector.h>
+#include <linux/limits.h>
+#include <string.h>
 #include <stdint.h>
 
 DeploymentConfiguration config;
 
 GglError get_data_endpoint(GglByteVec *endpoint) {
-    static uint8_t resp_mem[128] = { 0 };
+    uint8_t resp_mem[128] = { 0 };
     GglBuffer resp = GGL_BUF(resp_mem);
 
     GglError ret = ggl_gg_config_read_str(
@@ -36,7 +38,7 @@ GglError get_data_endpoint(GglByteVec *endpoint) {
 }
 
 GglError get_data_port(GglByteVec *port) {
-    static uint8_t resp_mem[128] = { 0 };
+    uint8_t resp_mem[16] = { 0 };
     GglBuffer resp = GGL_BUF(resp_mem);
 
     GglError ret = ggl_gg_config_read_str(
@@ -58,7 +60,7 @@ GglError get_data_port(GglByteVec *port) {
 }
 
 GglError get_region(GglByteVec *region) {
-    static uint8_t resp_mem[128] = { 0 };
+    uint8_t resp_mem[30] = { 0 };
     GglBuffer resp = GGL_BUF(resp_mem);
 
     GglError ret = ggl_gg_config_read_str(
@@ -75,12 +77,12 @@ GglError get_region(GglByteVec *region) {
         return ret;
     }
 
-    ggl_byte_vec_chain_append(&ret, region, resp);
+    ggl_byte_vec_append(region, resp);
     return ret;
 }
 
-GglError get_thing_name(char **thing_name) {
-    static uint8_t resp_mem[128] = { 0 };
+GglError get_thing_name(GglBuffer *thing_name) {
+    uint8_t resp_mem[128] = { 0 };
     GglBuffer resp = GGL_BUF(resp_mem);
 
     GglError ret = ggl_gg_config_read_str(
@@ -91,12 +93,13 @@ GglError get_thing_name(char **thing_name) {
         return ret;
     }
 
-    *thing_name = (char *) resp.data;
+    memcpy(thing_name->data, resp.data, resp.len);
+    thing_name->len = resp.len;
     return GGL_ERR_OK;
 }
 
-GglError get_root_ca_path(char **root_ca_path) {
-    static uint8_t resp_mem[128] = { 0 };
+GglError get_root_ca_path(GglBuffer *root_ca_path) {
+    uint8_t resp_mem[PATH_MAX] = { 0 };
     GglBuffer resp = GGL_BUF(resp_mem);
 
     GglError ret = ggl_gg_config_read_str(
@@ -107,12 +110,13 @@ GglError get_root_ca_path(char **root_ca_path) {
         return ret;
     }
 
-    *root_ca_path = (char *) resp.data;
+    memcpy(root_ca_path->data, resp.data, resp.len);
+    root_ca_path->len = resp.len;
     return GGL_ERR_OK;
 }
 
-GglError get_tes_cred_url(char **tes_cred_url) {
-    static uint8_t resp_mem[128] = { 0 };
+GglError get_tes_cred_url(GglBuffer *tes_cred_url) {
+    uint8_t resp_mem[128] = { 0 };
     GglBuffer resp = GGL_BUF(resp_mem);
 
     GglError ret = ggl_gg_config_read_str(
@@ -129,12 +133,13 @@ GglError get_tes_cred_url(char **tes_cred_url) {
         return ret;
     }
 
-    *tes_cred_url = (char *) resp.data;
+    memcpy(tes_cred_url->data, resp.data, resp.len);
+    tes_cred_url->len = resp.len;
     return GGL_ERR_OK;
 }
 
-GglError get_posix_user(char **posix_user) {
-    static uint8_t resp_mem[128] = { 0 };
+GglError get_posix_user(GglBuffer *posix_user) {
+    uint8_t resp_mem[128] = { 0 };
     GglBuffer resp = GGL_BUF(resp_mem);
 
     GglError ret = ggl_gg_config_read_str(
@@ -152,12 +157,13 @@ GglError get_posix_user(char **posix_user) {
         return ret;
     }
 
-    *posix_user = (char *) resp.data;
+    memcpy(posix_user->data, resp.data, resp.len);
+    posix_user->len = resp.len;
     return GGL_ERR_OK;
 }
 
 GglError get_private_key_path(GglByteVec *pkey_path) {
-    uint8_t resp_mem[128] = { 0 };
+    uint8_t resp_mem[PATH_MAX] = { 0 };
     GglBuffer resp = GGL_BUF(resp_mem);
 
     GglError ret = ggl_gg_config_read_str(
@@ -169,12 +175,12 @@ GglError get_private_key_path(GglByteVec *pkey_path) {
         return ret;
     }
 
-    ggl_byte_vec_chain_append(&ret, pkey_path, resp);
+    ggl_byte_vec_append(pkey_path, resp);
     return ret;
 }
 
 GglError get_cert_path(GglByteVec *cert_path) {
-    static uint8_t resp_mem[128] = { 0 };
+    uint8_t resp_mem[PATH_MAX] = { 0 };
     GglBuffer resp = GGL_BUF(resp_mem);
 
     GglError ret = ggl_gg_config_read_str(
@@ -186,12 +192,12 @@ GglError get_cert_path(GglByteVec *cert_path) {
         return ret;
     }
 
-    ggl_byte_vec_chain_append(&ret, cert_path, resp);
+    ggl_byte_vec_append(cert_path, resp);
     return ret;
 }
 
 GglError get_rootca_path(GglByteVec *rootca_path) {
-    static uint8_t resp_mem[128] = { 0 };
+    uint8_t resp_mem[PATH_MAX] = { 0 };
     GglBuffer resp = GGL_BUF(resp_mem);
 
     GglError ret = ggl_gg_config_read_str(
@@ -203,6 +209,6 @@ GglError get_rootca_path(GglByteVec *rootca_path) {
         return ret;
     }
 
-    ggl_byte_vec_chain_append(&ret, rootca_path, resp);
+    ggl_byte_vec_append(rootca_path, resp);
     return ret;
 }

@@ -5,6 +5,7 @@
 #ifndef GGDEPLOYMENTD_DEPLOYMENT_CONFIGURATION_H
 #define GGDEPLOYMENTD_DEPLOYMENT_CONFIGURATION_H
 
+#include <ggl/buffer.h>
 #include <ggl/error.h>
 #include <ggl/vector.h>
 
@@ -22,10 +23,10 @@ extern DeploymentConfiguration config;
 GglError get_data_endpoint(GglByteVec *endpoint);
 GglError get_data_port(GglByteVec *port);
 GglError get_region(GglByteVec *region);
-GglError get_thing_name(char **thing_name);
-GglError get_root_ca_path(char **root_ca_path);
-GglError get_tes_cred_url(char **tes_cred_url);
-GglError get_posix_user(char **posix_user);
+GglError get_thing_name(GglBuffer *thing_name);
+GglError get_root_ca_path(GglBuffer *root_ca_path);
+GglError get_tes_cred_url(GglBuffer *tes_cred_url);
+GglError get_posix_user(GglBuffer *posix_user);
 GglError get_private_key_path(GglByteVec *pkey_path);
 GglError get_cert_path(GglByteVec *cert_path);
 GglError get_rootca_path(GglByteVec *rootca_path);
