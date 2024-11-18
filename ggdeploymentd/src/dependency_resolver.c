@@ -74,21 +74,20 @@ static GglError get_device_thing_groups(GglBuffer *response) {
             .gghttplib_root_ca_path = config.rootca_path,
             .gghttplib_p_key_path = config.pkey_path };
 
-    char *thing_name = NULL;
+    uint8_t thing_name_arr[128];
+    GglBuffer thing_name = GGL_BUF(thing_name_arr);
     ret = get_thing_name(&thing_name);
     if (ret != GGL_ERR_OK) {
         GGL_LOGE("Failed to get thing name.");
         return ret;
     }
 
-    static uint8_t uri_path_buf[PATH_MAX];
+    uint8_t uri_path_buf[PATH_MAX];
     GglByteVec uri_path_vec = GGL_BYTE_VEC(uri_path_buf);
     ret = ggl_byte_vec_append(
         &uri_path_vec, GGL_STR("greengrass/v2/coreDevices/")
     );
-    ggl_byte_vec_chain_append(
-        &ret, &uri_path_vec, ggl_buffer_from_null_term(thing_name)
-    );
+    ggl_byte_vec_chain_append(&ret, &uri_path_vec, thing_name);
     ggl_byte_vec_chain_append(&ret, &uri_path_vec, GGL_STR("/thingGroups"));
     if (ret != GGL_ERR_OK) {
         GGL_LOGE("Failed to create thing groups call uri.");

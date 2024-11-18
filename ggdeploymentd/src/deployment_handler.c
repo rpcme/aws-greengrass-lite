@@ -34,6 +34,7 @@
 #include <ggl/vector.h>
 #include <ggl/zip.h>
 #include <limits.h>
+#include <linux/limits.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -874,54 +875,58 @@ static void handle_deployment(
                 return;
             }
 
-            char *thing_name = NULL;
+            uint8_t thing_name_arr[128];
+            GglBuffer thing_name = GGL_BUF(thing_name_arr);
             ret = get_thing_name(&thing_name);
             if (ret != GGL_ERR_OK) {
                 GGL_LOGE("Failed to get thing name.");
                 return;
             }
 
-            char *root_ca_path = NULL;
+            uint8_t root_ca_path_arr[PATH_MAX];
+            GglBuffer root_ca_path = GGL_BUF(root_ca_path_arr);
             ret = get_root_ca_path(&root_ca_path);
             if (ret != GGL_ERR_OK) {
                 GGL_LOGE("Failed to get rootCaPath.");
                 return;
             }
 
-            char *tes_cred_url = NULL;
+            uint8_t tes_cred_arr[128];
+            GglBuffer tes_cred_url = GGL_BUF(tes_cred_arr);
             ret = get_tes_cred_url(&tes_cred_url);
             if (ret != GGL_ERR_OK) {
                 GGL_LOGE("Failed to get tes credentials url.");
                 return;
             }
 
-            char *posix_user = NULL;
+            uint8_t posix_user_arr[128];
+            GglBuffer posix_user = GGL_BUF(posix_user_arr);
             ret = get_posix_user(&posix_user);
             if (ret != GGL_ERR_OK) {
                 GGL_LOGE("Failed to get posix_user.");
                 return;
             }
-            if (strlen(posix_user) < 1) {
+            if (posix_user.len < 1) {
                 GGL_LOGE("Run with default posix user is not set.");
                 return;
             }
             bool colon_found = false;
             char *group;
-            for (size_t j = 0; j < strlen(posix_user); j++) {
-                if (posix_user[j] == ':') {
-                    posix_user[j] = '\0';
+            for (size_t j = 0; j < posix_user.len; j++) {
+                if (posix_user.data[j] == ':') {
+                    posix_user.data[j] = '\0';
                     colon_found = true;
-                    group = &posix_user[j + 1];
+                    group = (char *) &posix_user.data[j + 1];
                     break;
                 }
             }
             if (!colon_found) {
-                group = posix_user;
+                group = (char *) posix_user.data;
             }
 
             static Recipe2UnitArgs recipe2unit_args;
             memset(&recipe2unit_args, 0, sizeof(Recipe2UnitArgs));
-            recipe2unit_args.user = posix_user;
+            recipe2unit_args.user = (char *) posix_user.data;
             recipe2unit_args.group = group;
 
             recipe2unit_args.component_name = pair->key;
@@ -1369,54 +1374,58 @@ static void handle_deployment(
                 return;
             }
 
-            char *thing_name = NULL;
+            uint8_t thing_name_arr[128];
+            GglBuffer thing_name = GGL_BUF(thing_name_arr);
             ret = get_thing_name(&thing_name);
             if (ret != GGL_ERR_OK) {
                 GGL_LOGE("Failed to get thing name.");
                 return;
             }
 
-            GglByteVec region = GGL_BYTE_VEC(config.region);
-            ret = get_region(&region);
-            if (ret != GGL_ERR_OK) {
-                GGL_LOGE("Failed to get region.");
-                return;
-            }
-
-            char *root_ca_path = NULL;
+            uint8_t root_ca_path_arr[PATH_MAX];
+            GglBuffer root_ca_path = GGL_BUF(root_ca_path_arr);
             ret = get_root_ca_path(&root_ca_path);
             if (ret != GGL_ERR_OK) {
                 GGL_LOGE("Failed to get rootCaPath.");
                 return;
             }
 
-            char *posix_user = NULL;
+            uint8_t tes_cred_arr[128];
+            GglBuffer tes_cred_url = GGL_BUF(tes_cred_arr);
+            ret = get_tes_cred_url(&tes_cred_url);
+            if (ret != GGL_ERR_OK) {
+                GGL_LOGE("Failed to get tes credentials url.");
+                return;
+            }
+
+            uint8_t posix_user_arr[128];
+            GglBuffer posix_user = GGL_BUF(posix_user_arr);
             ret = get_posix_user(&posix_user);
             if (ret != GGL_ERR_OK) {
                 GGL_LOGE("Failed to get posix_user.");
                 return;
             }
-            if (strlen(posix_user) < 1) {
+            if (posix_user.len < 1) {
                 GGL_LOGE("Run with default posix user is not set.");
                 return;
             }
             bool colon_found = false;
             char *group;
-            for (size_t i = 0; i < strlen(posix_user); i++) {
-                if (posix_user[i] == ':') {
-                    posix_user[i] = '\0';
+            for (size_t j = 0; j < posix_user.len; j++) {
+                if (posix_user.data[j] == ':') {
+                    posix_user.data[j] = '\0';
                     colon_found = true;
-                    group = &posix_user[i + 1];
+                    group = (char *) &posix_user.data[j + 1];
                     break;
                 }
             }
             if (!colon_found) {
-                group = posix_user;
+                group = (char *) posix_user.data;
             }
 
             static Recipe2UnitArgs recipe2unit_args;
             memset(&recipe2unit_args, 0, sizeof(Recipe2UnitArgs));
-            recipe2unit_args.user = posix_user;
+            recipe2unit_args.user = (char *) posix_user.data;
             recipe2unit_args.group = group;
 
             GGL_LOGI(

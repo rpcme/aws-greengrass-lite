@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "deployment_configuration.h"
+#include <assert.h>
 #include <ggl/buffer.h>
 #include <ggl/core_bus/gg_config.h>
 #include <ggl/error.h>
@@ -93,6 +94,7 @@ GglError get_thing_name(GglBuffer *thing_name) {
         return ret;
     }
 
+    assert(thing_name->len <= resp.len);
     memcpy(thing_name->data, resp.data, resp.len);
     thing_name->len = resp.len;
     return GGL_ERR_OK;
@@ -110,6 +112,7 @@ GglError get_root_ca_path(GglBuffer *root_ca_path) {
         return ret;
     }
 
+    assert(root_ca_path->len <= resp.len);
     memcpy(root_ca_path->data, resp.data, resp.len);
     root_ca_path->len = resp.len;
     return GGL_ERR_OK;
@@ -133,6 +136,7 @@ GglError get_tes_cred_url(GglBuffer *tes_cred_url) {
         return ret;
     }
 
+    assert(tes_cred_url->len <= resp.len);
     memcpy(tes_cred_url->data, resp.data, resp.len);
     tes_cred_url->len = resp.len;
     return GGL_ERR_OK;
@@ -157,6 +161,7 @@ GglError get_posix_user(GglBuffer *posix_user) {
         return ret;
     }
 
+    assert(posix_user->len <= resp.len);
     memcpy(posix_user->data, resp.data, resp.len);
     posix_user->len = resp.len;
     return GGL_ERR_OK;
