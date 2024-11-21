@@ -12,6 +12,7 @@
 #include <ggl/vector.h>
 #include <limits.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 DeploymentConfiguration config;
