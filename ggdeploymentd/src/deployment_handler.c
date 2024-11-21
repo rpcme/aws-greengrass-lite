@@ -67,7 +67,17 @@ static GglError merge_dir_to(GglBuffer source, char *dir) {
     if (ret != GGL_ERR_OK) {
         return ret;
     }
-    char *cp[] = { "cp", "-RP", (char *) source.data, dir, NULL };
+
+    // Append /. so that contents get copied, not dir
+    static char source_path[PATH_MAX];
+    GglByteVec source_path_vec = GGL_BYTE_VEC(source_path);
+    ret = ggl_byte_vec_append(&source_path_vec, source);
+    ggl_byte_vec_chain_append(&ret, &source_path_vec, GGL_STR("/.\0"));
+    if (ret != GGL_ERR_OK) {
+        return ret;
+    }
+
+    char *cp[] = { "cp", "-RP", source_path, dir, NULL };
     return ggl_process_call(cp);
 }
 
@@ -77,7 +87,7 @@ static GglError get_tes_credentials(TesCredentials *tes_creds) {
     GglObject *aws_session_token = NULL;
 
     static uint8_t credentials_alloc[1500];
-    static GglBuffer tesd = GGL_STR("/aws/ggl/tesd");
+    static GglBuffer tesd = GGL_STR("aws_iot_tes");
     GglObject result;
     GglMap params = { 0 };
     GglBumpAlloc credential_alloc
@@ -539,7 +549,7 @@ static GglError add_arn_list_to_config(
 }
 
 static GglError send_fss_update(GglBuffer trigger) {
-    GglBuffer server = GGL_STR("/aws/ggl/gg-fleet-statusd");
+    GglBuffer server = GGL_STR("gg_fleet_status");
     static uint8_t buffer[10 * sizeof(GglObject)] = { 0 };
 
     GglMap args = GGL_MAP({ GGL_STR("trigger"), GGL_OBJ_BUF(trigger) });
@@ -660,7 +670,7 @@ static GglError wait_for_deployment_status(GglMap resolved_components) {
             component->key.data
         );
         GglError ret = ggl_sub_response(
-            GGL_STR("/aws/ggl/gghealthd"),
+            GGL_STR("gg_health"),
             GGL_STR("subscribe_to_lifecycle_completion"),
             GGL_MAP({ GGL_STR("component_name"), GGL_OBJ_BUF(component->key) }),
             deployment_status_callback,
@@ -1267,7 +1277,6 @@ static void handle_deployment(
                          "daemon-reload command.");
                 return;
             }
-
             // NOLINTNEXTLINE(concurrency-mt-unsafe)
             int system_ret = system((char *) reload_command_vec.buf.data);
             if (WIFEXITED(system_ret)) {
@@ -1286,6 +1295,13 @@ static void handle_deployment(
                 return;
             }
         }
+
+        // NOLINTNEXTLINE(concurrency-mt-unsafe)
+        int system_ret = system("sudo systemctl reset-failed");
+        (void) (system_ret);
+        // NOLINTNEXTLINE(concurrency-mt-unsafe)
+        system_ret = system("sudo systemctl start greengrass-lite.target");
+        (void) (system_ret);
 
         ret = wait_for_deployment_status(resolved_components_kv_vec.map);
         if (ret != GGL_ERR_OK) {

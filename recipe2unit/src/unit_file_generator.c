@@ -55,28 +55,16 @@ static GglError parse_dependency_type(
 
         if (strncmp((char *) val->buf.data, "HARD", val->buf.len) == 0) {
             GglError ret = ggl_byte_vec_append(out, GGL_STR("BindsTo=ggl."));
-            if (ret != GGL_ERR_OK) {
-                return ret;
-            }
-            ret = ggl_byte_vec_append(out, component_dependency.key);
-            if (ret != GGL_ERR_OK) {
-                return ret;
-            }
-            ret = ggl_byte_vec_append(out, GGL_STR(".service\n"));
+            ggl_byte_vec_chain_append(&ret, out, component_dependency.key);
+            ggl_byte_vec_chain_append(&ret, out, GGL_STR(".service\n"));
             if (ret != GGL_ERR_OK) {
                 return ret;
             }
 
         } else {
             GglError ret = ggl_byte_vec_append(out, GGL_STR("Wants=ggl."));
-            if (ret != GGL_ERR_OK) {
-                return ret;
-            }
-            ret = ggl_byte_vec_append(out, component_dependency.key);
-            if (ret != GGL_ERR_OK) {
-                return ret;
-            }
-            ret = ggl_byte_vec_append(out, GGL_STR(".service\n"));
+            ggl_byte_vec_chain_append(&ret, out, component_dependency.key);
+            ggl_byte_vec_chain_append(&ret, out, GGL_STR(".service\n"));
             if (ret != GGL_ERR_OK) {
                 return ret;
             }
@@ -127,23 +115,16 @@ static GglError fill_unit_section(
     }
 
     ret = ggl_byte_vec_append(concat_unit_vector, GGL_STR("Description="));
-    if (ret != GGL_ERR_OK) {
-        return ret;
-    }
     if (ggl_map_get(recipe_map, GGL_STR("ComponentDescription"), &val)) {
         if (val->type != GGL_TYPE_BUF) {
             return GGL_ERR_PARSE;
         }
 
-        ret = ggl_byte_vec_append(concat_unit_vector, val->buf);
-        if (ret != GGL_ERR_OK) {
-            return ret;
-        }
-
-        ret = ggl_byte_vec_append(concat_unit_vector, GGL_STR("\n"));
-        if (ret != GGL_ERR_OK) {
-            return ret;
-        }
+        ggl_byte_vec_chain_append(&ret, concat_unit_vector, val->buf);
+        ggl_byte_vec_chain_push(&ret, concat_unit_vector, '\n');
+    }
+    if (ret != GGL_ERR_OK) {
+        return ret;
     }
 
     if (phase == RUN_STARTUP) {
@@ -151,6 +132,15 @@ static GglError fill_unit_section(
             if ((val->type == GGL_TYPE_MAP) || (val->type == GGL_TYPE_LIST)) {
                 return dependency_parser(val, concat_unit_vector);
             }
+        }
+        ret = ggl_byte_vec_append(
+            concat_unit_vector,
+            GGL_STR(
+                "Wants=ggl.core.ggipcd.service\nAfter=ggl.core.ggipcd.service\n"
+            )
+        );
+        if (ret != GGL_ERR_OK) {
+            return ret;
         }
     }
 
@@ -341,6 +331,7 @@ static GglError concat_exec_start_section_vec(
     }
     cwd.len = strlen((char *) cwd.data);
     exec_start_section_vec->buf.len += cwd.len;
+    GGL_LOGD("%.*s (%zu)", (int) cwd.len, cwd.data, cwd.len);
 
     ggl_byte_vec_chain_append(&ret, exec_start_section_vec, GGL_STR("/"));
     if (ret != GGL_ERR_OK) {
@@ -496,7 +487,7 @@ static GglError manifest_builder(
                         out, GGL_STR("RemainAfterExit=true\n")
                     );
                     ggl_byte_vec_chain_append(
-                        &ret, out, GGL_STR("Type=oneshot\n")
+                        &ret, out, GGL_STR("Type=notify\n")
                     );
                     if (ret != GGL_ERR_OK) {
                         GGL_LOGE("Failed to add unit type information");
@@ -584,7 +575,7 @@ static GglError fill_install_section(
     if (current_phase != INSTALL) {
         GglError ret = ggl_byte_vec_append(out, GGL_STR("\n[Install]\n"));
         ggl_byte_vec_chain_append(
-            &ret, out, GGL_STR("WantedBy=multi-user.target\n")
+            &ret, out, GGL_STR("WantedBy=greengrass-lite.target\n")
         );
         if (ret != GGL_ERR_OK) {
             GGL_LOGE("Failed to set Install section to unit file");

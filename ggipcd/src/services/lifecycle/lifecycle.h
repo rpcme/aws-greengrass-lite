@@ -2,9 +2,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef GG_FLEET_STATUSD_BUS_SERVER_H
-#define GG_FLEET_STATUSD_BUS_SERVER_H
+#ifndef GGL_IPC_LIFECYCLE_H
+#define GGL_IPC_LIFECYCLE_H
 
-void gg_fleet_statusd_start_server(void);
+#include "../../ipc_service.h"
+GglIpcOperationHandler ggl_handle_update_state;
 
 #endif
