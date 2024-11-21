@@ -1104,7 +1104,7 @@ static void handle_deployment(
                         GglByteVec link_command_vec
                             = GGL_BYTE_VEC(link_command_buf);
                         ret = ggl_byte_vec_append(
-                            &link_command_vec, GGL_STR("sudo systemctl link ")
+                            &link_command_vec, GGL_STR("systemctl link ")
                         );
                         ggl_byte_vec_chain_append(
                             &ret,
@@ -1140,7 +1140,7 @@ static void handle_deployment(
                         GglByteVec start_command_vec
                             = GGL_BYTE_VEC(start_command_buf);
                         ret = ggl_byte_vec_append(
-                            &start_command_vec, GGL_STR("sudo systemctl start ")
+                            &start_command_vec, GGL_STR("systemctl start ")
                         );
                         ggl_byte_vec_chain_append(
                             &ret,
@@ -1204,7 +1204,7 @@ static void handle_deployment(
                     GglByteVec link_command_vec
                         = GGL_BYTE_VEC(link_command_buf);
                     ret = ggl_byte_vec_append(
-                        &link_command_vec, GGL_STR("sudo systemctl link ")
+                        &link_command_vec, GGL_STR("systemctl link ")
                     );
                     ggl_byte_vec_chain_append(
                         &ret, &link_command_vec, service_file_path_vec.buf
@@ -1219,15 +1219,15 @@ static void handle_deployment(
                     int system_ret = system((char *) link_command_vec.buf.data);
                     if (WIFEXITED(system_ret)) {
                         if (WEXITSTATUS(system_ret) != 0) {
-                            GGL_LOGE("sudo systemctl link command failed");
+                            GGL_LOGE("systemctl link command failed");
                             return;
                         }
                         GGL_LOGI(
-                            "sudo systemctl link exited with child status %d\n",
+                            "systemctl link exited with child status %d\n",
                             WEXITSTATUS(system_ret)
                         );
                     } else {
-                        GGL_LOGE("sudo systemctl link did not exit normally");
+                        GGL_LOGE("systemctl link did not exit normally");
                         return;
                     }
 
@@ -1236,7 +1236,7 @@ static void handle_deployment(
                     GglByteVec enable_command_vec
                         = GGL_BYTE_VEC(enable_command_buf);
                     ret = ggl_byte_vec_append(
-                        &enable_command_vec, GGL_STR("sudo systemctl enable ")
+                        &enable_command_vec, GGL_STR("systemctl enable ")
                     );
                     ggl_byte_vec_chain_append(
                         &ret, &enable_command_vec, service_file_path_vec.buf
@@ -1251,16 +1251,16 @@ static void handle_deployment(
                     system_ret = system((char *) enable_command_vec.buf.data);
                     if (WIFEXITED(system_ret)) {
                         if (WEXITSTATUS(system_ret) != 0) {
-                            GGL_LOGE("sudo systemctl enable failed");
+                            GGL_LOGE("systemctl enable failed");
                             return;
                         }
                         GGL_LOGI(
-                            "sudo systemctl enable exited with child status "
+                            "systemctl enable exited with child status "
                             "%d\n",
                             WEXITSTATUS(system_ret)
                         );
                     } else {
-                        GGL_LOGE("sudo systemctl enable did not exit normally");
+                        GGL_LOGE("systemctl enable did not exit normally");
                         return;
                     }
                 }
@@ -1270,37 +1270,34 @@ static void handle_deployment(
             static uint8_t reload_command_buf[PATH_MAX];
             GglByteVec reload_command_vec = GGL_BYTE_VEC(reload_command_buf);
             ret = ggl_byte_vec_append(
-                &reload_command_vec, GGL_STR("sudo systemctl daemon-reload\0")
+                &reload_command_vec, GGL_STR("systemctl daemon-reload\0")
             );
             if (ret != GGL_ERR_OK) {
-                GGL_LOGE("Failed to create sudo systemctl "
-                         "daemon-reload command.");
+                GGL_LOGE("Failed to create systemctl daemon-reload command.");
                 return;
             }
             // NOLINTNEXTLINE(concurrency-mt-unsafe)
             int system_ret = system((char *) reload_command_vec.buf.data);
             if (WIFEXITED(system_ret)) {
                 if (WEXITSTATUS(system_ret) != 0) {
-                    GGL_LOGE("sudo systemctl daemon-reload failed");
+                    GGL_LOGE("systemctl daemon-reload failed");
                     return;
                 }
                 GGL_LOGI(
-                    "sudo systemctl daemon-reload exited with child "
-                    "status "
-                    "%d\n",
+                    "systemctl daemon-reload exited with child status %d\n",
                     WEXITSTATUS(system_ret)
                 );
             } else {
-                GGL_LOGE("sudo systemctl daemon-reload did not exit normally");
+                GGL_LOGE("systemctl daemon-reload did not exit normally");
                 return;
             }
         }
 
         // NOLINTNEXTLINE(concurrency-mt-unsafe)
-        int system_ret = system("sudo systemctl reset-failed");
+        int system_ret = system("systemctl reset-failed");
         (void) (system_ret);
         // NOLINTNEXTLINE(concurrency-mt-unsafe)
-        system_ret = system("sudo systemctl start greengrass-lite.target");
+        system_ret = system("systemctl start greengrass-lite.target");
         (void) (system_ret);
 
         ret = wait_for_deployment_status(resolved_components_kv_vec.map);
@@ -1509,7 +1506,7 @@ static void handle_deployment(
             static uint8_t link_command_buf[PATH_MAX];
             GglByteVec link_command_vec = GGL_BYTE_VEC(link_command_buf);
             ret = ggl_byte_vec_append(
-                &link_command_vec, GGL_STR("sudo systemctl link ")
+                &link_command_vec, GGL_STR("systemctl link ")
             );
             ggl_byte_vec_chain_append(&ret, &link_command_vec, args->root_path);
             ggl_byte_vec_chain_push(&ret, &link_command_vec, '/');
@@ -1540,7 +1537,7 @@ static void handle_deployment(
             static uint8_t start_command_buf[PATH_MAX];
             GglByteVec start_command_vec = GGL_BYTE_VEC(start_command_buf);
             ret = ggl_byte_vec_append(
-                &start_command_vec, GGL_STR("sudo systemctl start ")
+                &start_command_vec, GGL_STR("systemctl start ")
             );
             ggl_byte_vec_chain_append(
                 &ret, &start_command_vec, service_file_path_vec.buf
@@ -1569,7 +1566,7 @@ static void handle_deployment(
             static uint8_t enable_command_buf[PATH_MAX];
             GglByteVec enable_command_vec = GGL_BYTE_VEC(enable_command_buf);
             ret = ggl_byte_vec_append(
-                &enable_command_vec, GGL_STR("sudo systemctl enable ")
+                &enable_command_vec, GGL_STR("systemctl enable ")
             );
             ggl_byte_vec_chain_append(
                 &ret, &enable_command_vec, service_file_path_vec.buf
