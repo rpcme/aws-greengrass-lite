@@ -400,6 +400,10 @@ if(GGL_SYSTEMD_SERVICE_BUILD)
     COMMENT "Nucleus systemd target")
   install(FILES "${CMAKE_BINARY_DIR}/misc/greengrass-lite.target"
           DESTINATION ${GGL_SYSTEMD_SYSTEM_DIR})
+  configure_file("${CMAKE_SOURCE_DIR}/misc/systemd/greengrass_dir.conf.in"
+                 "${CMAKE_CURRENT_BINARY_DIR}/greengrass_dir.conf" @ONLY)
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/greengrass_dir.conf"
+          DESTINATION lib/tmpfiles.d)
 endif()
 
 if(BUILD_EXAMPLES)
@@ -414,17 +418,11 @@ if(BUILD_EXAMPLES)
   add_subdirectory(recipe2unit-test)
   add_subdirectory(ggconfigd-test)
   add_subdirectory(semver-test)
-
-  add_custom_target(
-    run_nucleus ALL
-    COMMAND cp "${CMAKE_SOURCE_DIR}/misc/run_nucleus" "${CMAKE_BINARY_DIR}/bin"
-    COMMENT "Nucleus run script for testing")
 endif()
 
 #
 # CPACK deb package generation
 #
-install(PROGRAMS "misc/run_nucleus" DESTINATION bin)
 
 set(CPACK_GENERATOR DEB)
 
@@ -440,8 +438,9 @@ set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 include(CPack)
 
 #
-# uninstall target
+# Uninstall target
 #
+
 if(NOT TARGET uninstall)
   configure_file(
     "${CMAKE_SOURCE_DIR}/misc/cmake_uninstall.cmake.in"

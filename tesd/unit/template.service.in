@@ -16,14 +16,12 @@ RestartSec=1
 CapabilityBoundingSet=~CAP_SYS_ADMIN ~CAP_SYS_PTRACE
 User=@GGL_SYSTEMD_SYSTEM_USER@
 Group=@GGL_SYSTEMD_SYSTEM_GROUP@
-# Working directory in StateDirectory (/var/lib/greengrass)
-StateDirectory=greengrass
-WorkingDirectory=%S/greengrass
+WorkingDirectory=/var/lib/greengrass
 
 [Install]
 WantedBy=multi-user.target
 
 [Unit]
-After=ggl.core.ggconfigd.target
-After=ggl.core.iotcored.target
+After=ggl.core.ggconfigd.service
+After=ggl.core.iotcored.service
 After=network.target
