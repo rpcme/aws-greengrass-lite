@@ -10,6 +10,7 @@
 #include "iot_jobs_listener.h"
 #include "stale_component.h"
 #include <sys/types.h>
+#include <assert.h>
 #include <fcntl.h>
 #include <ggl/base64.h>
 #include <ggl/buffer.h>
