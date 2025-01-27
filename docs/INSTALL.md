@@ -30,7 +30,7 @@ To build the project, you will need the following build dependencies:
 - curl
 - libssl-dev
 - libcurl4-openssl-dev
-- libuuid-dev
+- uuid-dev
 - libzip-dev
 - libsqlite3-dev
 - libyaml-dev
@@ -43,7 +43,7 @@ On Ubuntu, these can be installed with:
 
 ```sh
 sudo apt install build-essential pkg-config cmake git curl libssl-dev \
-  libcurl4-openssl-dev libuuid-dev libzip-dev libsqlite3-dev install libyaml-dev \
+  libcurl4-openssl-dev uuid-dev libzip-dev libsqlite3-dev libyaml-dev \
   libsystemd-dev libevent-dev liburiparser-dev
 ```
 
