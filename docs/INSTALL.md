@@ -38,7 +38,6 @@ To build the project, you will need the following build dependencies:
 - libevent-dev
 - liburiparser-dev
 
-
 On Ubuntu, these can be installed with:
 
 ```sh
