@@ -33,7 +33,7 @@ To build the project, you will need the following build dependencies:
 - libuuid-dev
 - libzip-dev
 - libsqlite3-dev
-- install libyaml-dev
+- libyaml-dev
 - libsystemd-dev
 - libevent-dev
 - liburiparser-dev
